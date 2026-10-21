@@ -41,6 +41,8 @@ export class FakeKeycloak {
       [BOB, 'bob'],
     ]);
     this.locked = new Set(events.length > 0 ? [BOB] : []);
+    /** @type {Set<string>} accounts disabled (a permanent lockout) */
+    this.disabled = new Set();
     this.userCount = 2;
     this.sessionStats = structuredClone(FIXTURES.sessionStats);
     this.showVersion = true;
@@ -212,7 +214,11 @@ export class FakeKeycloak {
     if (user) {
       const name = this.users.get(decodeURIComponent(user[1]));
       return name
-        ? json(200, { id: user[1], username: name, enabled: true })
+        ? json(200, {
+            id: user[1],
+            username: name,
+            enabled: !this.disabled.has(decodeURIComponent(user[1])),
+          })
         : json(404, { error: 'User not found' });
     }
     return json(404, { error: 'HTTP 404 Not Found' });

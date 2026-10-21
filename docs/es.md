@@ -21,8 +21,7 @@ son bienvenidos en [las issues](https://github.com/guim31/gladys-keycloak/issues
 
 - Gladys Assistant 5.1.0 o posterior.
 - Keycloak, accesible desde la máquina de Gladys (su dirección pública, o su
-  dirección local en el puerto 8080 u 8443). Probado con la 26.4; una versión
-  más antigua con la misma API de administración debería funcionar.
+  dirección local en el puerto 8080 u 8443). Probado solo con la 26.4.
 - Los **eventos activados** en cada realm vigilado (abajo): por defecto,
   Keycloak no guarda ningún evento.
 - Un **cliente confidencial con cuenta de servicio** y tres roles de lectura
@@ -193,8 +192,9 @@ escriben en los registros de la integración en el nivel info.
 - Lo que pasó mientras la integración estaba parada se anuncia en el siguiente
   arranque (dentro de las últimas 24 horas, ya que la hora del último evento se
   guarda en `/data`); el primer arranque no anuncia nada.
-- Cada renovación del token (cada 5 minutos por defecto) escribe un evento
-  `CLIENT_LOGIN` en el realm del cliente: unos 300 al día.
+- Cada renovación del token escribe un evento `CLIENT_LOGIN` en el realm del
+  cliente: unos 300 al día con los tokens de 5 minutos de un realm, hasta uno
+  por lectura con los tokens de 1 minuto de master.
 - Como máximo 10 realms. El dispositivo de un realm va ligado a su nombre:
   renombrar el realm crea otro dispositivo.
 - Solo se siguen los inicios de sesión, los bloqueos y las acciones de

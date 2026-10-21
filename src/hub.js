@@ -109,6 +109,10 @@ function newRealm(name) {
     error: null,
     failures: 0,
     burstArmed: true,
+    // Time of the latest admin event read, followed or not (the cursor).
+    adminSeen: 0,
+    // Where the next check of the locked accounts starts (they take turns).
+    lockOffset: 0,
     users: null,
     usersAt: 0,
     sessions: null,
@@ -333,6 +337,7 @@ export class KeycloakHub {
 
   async read(client) {
     const sceneEvents = [];
+    const saved = this.saved;
     let changed = false;
     let tokenError = null;
     try {
@@ -345,11 +350,17 @@ export class KeycloakHub {
     }
     for (const realm of this.realms.values()) {
       if (client !== this.client) {
-        return false;
+        break;
       }
       changed = (await this.readRealm(client, realm, sceneEvents, tokenError)) || changed;
     }
     if (client !== this.client) {
+      // Another client meanwhile (a secret, a realm added): the cursors of the
+      // realms read are saved, so their news go out now, unless the server
+      // changed too.
+      if (saved === this.saved) {
+        await this.fireAll(sceneEvents);
+      }
       return false;
     }
     const now = this.now();
@@ -383,14 +394,18 @@ export class KeycloakHub {
       return this.applyFailure(realm, tokenError);
     }
     const now = this.now();
-    const sinceLast = (map) =>
-      realm.loaded && newest(map) ? Math.max(newest(map) - OVERLAP_MS, now - DAY_MS) : now - DAY_MS;
+    const sinceLast = (latest) =>
+      realm.loaded && latest ? Math.max(latest - OVERLAP_MS, now - DAY_MS) : now - DAY_MS;
     const pages = realm.loaded ? MAX_PAGES : FIRST_MAX_PAGES;
     let user;
     let admin;
     try {
-      user = await client.userEvents(realm.name, sinceLast(realm.events), pages);
-      admin = await client.adminEvents(realm.name, sinceLast(realm.admin), pages);
+      user = await client.userEvents(realm.name, sinceLast(newest(realm.events)), pages);
+      admin = await client.adminEvents(
+        realm.name,
+        sinceLast(Math.max(newest(realm.admin), realm.adminSeen)),
+        pages,
+      );
     } catch (err) {
       if (!(err instanceof KeycloakError)) {
         throw err;
@@ -559,6 +574,7 @@ export class KeycloakHub {
       initialized,
     });
     realm.loaded = true;
+    realm.adminSeen = Math.max(realm.adminSeen, admin.latest ?? 0);
     widgetChanged = widgetChanged || userMerge.changed || adminMerge.changed;
     for (const [key, merged] of [
       ['', userMerge],
@@ -666,7 +682,10 @@ export class KeycloakHub {
     // The accounts found locked before: still locked? (an administrator may
     // have unlocked them, a temporary lockout ends.) The new lockouts are
     // locked by definition.
-    const toCheck = [...locked].slice(0, MAX_LOCK_CHECKS);
+    const all = [...locked].sort();
+    const start = all.length > MAX_LOCK_CHECKS ? realm.lockOffset % all.length : 0;
+    const toCheck = [...all, ...all].slice(start, start + Math.min(all.length, MAX_LOCK_CHECKS));
+    realm.lockOffset = start + toCheck.length;
     for (const userId of toCheck) {
       const still = await this.secondary(realm, 'locks', client, () =>
         client.isLocked(realm.name, userId),
@@ -899,7 +918,7 @@ export class KeycloakHub {
   async publishStates() {
     const states = [];
     for (const realm of this.realms.values()) {
-      if (realm.readAt === 0 || !this.isCreated(realmIds(this.gladys, realm.name).device)) {
+      if (!this.showsState(realm) || !this.isCreated(realmIds(this.gladys, realm.name).device)) {
         continue;
       }
       states.push(
@@ -921,6 +940,15 @@ export class KeycloakHub {
     }
   }
 
+  /**
+   * Whether the device of a realm gets states: once read, or after
+   * FAILURES_BEFORE_UNREACHABLE failures (Keycloak slower than the integration
+   * to start must not make the device unreachable).
+   */
+  showsState(realm) {
+    return realm.loaded || realm.failures >= FAILURES_BEFORE_UNREACHABLE;
+  }
+
   async afterChanges(widgetChanged, { publish = false } = {}) {
     await this.publishDevices({ force: publish });
     await this.publishTransports();
@@ -938,7 +966,7 @@ export class KeycloakHub {
     const changes = [];
     for (const realm of this.realms.values()) {
       const externalId = realmIds(this.gladys, realm.name).device;
-      if (realm.readAt === 0 || !this.isCreated(externalId)) {
+      if (!this.showsState(realm) || !this.isCreated(externalId)) {
         continue;
       }
       const transport = this.isReachable(realm)

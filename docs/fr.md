@@ -21,8 +21,7 @@ les bienvenus sur [les issues](https://github.com/guim31/gladys-keycloak/issues)
 
 - Gladys Assistant 5.1.0 ou plus récent.
 - Keycloak, joignable depuis la machine de Gladys (son adresse publique, ou son
-  adresse locale sur le port 8080 ou 8443). Testé avec la 26.4 ; une version
-  plus ancienne avec la même API d'administration devrait fonctionner.
+  adresse locale sur le port 8080 ou 8443). Testé avec la 26.4 seulement.
 - Les **événements activés** dans chaque realm surveillé (ci-dessous) : par
   défaut, Keycloak n'enregistre aucun événement.
 - Un **client confidentiel avec compte de service** et trois rôles de lecture
@@ -129,7 +128,7 @@ dernières 24 heures et les comptes bloqués, puis les derniers événements
   `user_temporarily_disabled`…).
 - **Série d'échecs de connexion** : les échecs d'un realm atteignent le nombre
   réglé dans la configuration, dans sa fenêtre. Se déclenche une fois par
-  série, puis de nouveau seulement quand le compte est repassé sous le seuil.
+  série, puis de nouveau seulement quand le nombre d'échecs est repassé sous le seuil.
   Filtre : le realm. Variables : realm, nombre d'échecs, fenêtre, noms
   d'utilisateur et adresses différents, le dernier nom d'utilisateur et la
   dernière adresse.
@@ -195,8 +194,9 @@ jamais écrits dans les logs de l'intégration au niveau info.
 - Ce qui s'est passé pendant l'arrêt de l'intégration est annoncé au démarrage
   suivant (dans les dernières 24 heures, l'heure du dernier événement étant
   gardée dans `/data`) ; le tout premier démarrage n'annonce rien.
-- Chaque renouvellement du jeton (toutes les 5 minutes par défaut) écrit un
-  événement `CLIENT_LOGIN` dans le realm du client : environ 300 par jour.
+- Chaque renouvellement du jeton écrit un événement `CLIENT_LOGIN` dans le realm
+  du client : environ 300 par jour avec les jetons de 5 minutes d'un realm,
+  jusqu'à un par lecture avec les jetons d'une minute de master.
 - Au plus 10 realms. L'appareil d'un realm est repéré par son nom : renommer le
   realm crée un autre appareil.
 - Seuls les connexions, les blocages et les actions d'administration ci-dessus

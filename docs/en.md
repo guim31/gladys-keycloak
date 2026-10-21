@@ -20,8 +20,7 @@ Developed without a production installation: feedback welcome on
 
 - Gladys Assistant 5.1.0 or later.
 - Keycloak, reachable from the Gladys machine (its public address, or its
-  local address on port 8080 or 8443). Tested with 26.4; an older version with
-  the same admin API should work.
+  local address on port 8080 or 8443). Tested with 26.4 only.
 - The **events turned on** in each realm watched (below): Keycloak saves no
   event by default.
 - A **confidential client with a service account** and three read roles
@@ -184,8 +183,9 @@ integration logs at the info level.
 - What happened while the integration was stopped is announced at the next
   start (within the last 24 hours, the time of the latest event being kept in
   `/data`); the first start announces nothing.
-- Each renewal of the token (every 5 minutes by default) writes a
-  `CLIENT_LOGIN` event in the realm of the client: about 300 a day.
+- Each renewal of the token writes a `CLIENT_LOGIN` event in the realm of the
+  client: about 300 a day with the 5-minute tokens of a realm, up to one per
+  read with the 1-minute tokens of master.
 - At most 10 realms. The device of a realm is keyed by its name: renaming the
   realm makes another device.
 - Only the logins, the lockouts and the admin events listed above are followed,

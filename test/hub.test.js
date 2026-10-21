@@ -492,3 +492,53 @@ test('a realm name with odd characters makes a clean external id', async (t) => 
   const { realmIds } = await import('../src/devices.js');
   assert.match(realmIds(world.gladys, 'Mon:Realm é').device, /:realm:Mon_3aRealm_20_e9$/);
 });
+
+test('a permanent lockout stays counted until the account is enabled again', async (t) => {
+  const world = await createWorld();
+  t.after(() => world.app.stop());
+  await createDevices(world);
+  world.keycloak.locked.clear(); // bob's temporary lockout is over
+  await later(world, (at) => {
+    world.keycloak.add('USER_DISABLED_BY_PERMANENT_LOCKOUT', { at, userId: ALICE });
+    world.keycloak.disabled.add(ALICE);
+  });
+  await later(world);
+  assert.equal(state(world, KEYS.LOCKED), 1, 'the brute-force status no longer says it');
+  world.keycloak.disabled.clear();
+  await later(world);
+  assert.equal(state(world, KEYS.LOCKED), 0);
+});
+
+test('Keycloak slower to start than the integration: not unreachable at once', async (t) => {
+  const keycloak = new FakeKeycloak();
+  keycloak.down = true;
+  const world = await createWorld({ keycloak });
+  t.after(() => world.app.stop());
+  world.hub.gladys.devices.push({ external_id: idsOf(world).device });
+  await world.hub.publishStates();
+  assert.equal(state(world, KEYS.REACHABLE), undefined, 'one failure: nothing published');
+  await later(world);
+  assert.equal(state(world, KEYS.REACHABLE), 0);
+});
+
+test('the news of a realm read survive a configuration saved during the read', async (t) => {
+  const world = await createWorld({ config: { realms: 'home, family' } });
+  t.after(() => world.app.stop());
+  const request = world.keycloak.request;
+  let changed = false;
+  world.hub.client.request = async (url, options) => {
+    if (!changed && url.includes('/realms/family/events')) {
+      changed = true;
+      // The user saves a new secret while home is read.
+      world.hub.reconfigure({ ...world.hub.config, clientSecret: CLIENT_SECRET + '-2' });
+    }
+    return request(url, options);
+  };
+  world.keycloak.add('LOGIN_ERROR', { at: world.clock.time + 1, username: 'mallory' });
+  world.clock.advance(60_000);
+  await world.hub.poll();
+  assert.deepEqual(
+    events(world, TRIGGERS.LOGIN_FAILED).map((event) => event.data.username),
+    ['mallory'],
+  );
+});

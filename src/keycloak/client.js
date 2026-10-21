@@ -347,7 +347,7 @@ export class KeycloakClient {
         realm: this.authRealm,
       });
     }
-    if (status === 400 || status === 401) {
+    if ((status === 400 || status === 401) && object(data).error) {
       // invalid_client / unauthorized_client: wrong id or secret, or the
       // client has no service account.
       const error = str(object(data).error, 64) || `HTTP ${status}`;
@@ -381,7 +381,8 @@ export class KeycloakClient {
    */
   async get(path, { retried = false } = {}) {
     const token = await this.ensureToken();
-    const what = path.split('?')[0];
+    // No account id in the logs: /users/{id}.
+    const what = path.split('?')[0].replace(/\/users\/(?!count$)[^/]+/, '/users/{id}');
     const { status, body } = await this.send(
       `${this.url}/admin${path}`,
       {
@@ -434,6 +435,8 @@ export class KeycloakClient {
    */
   async listEvents(path, normalize, from, maxPages) {
     const events = [];
+    // The latest event read, followed or not: the next read starts there.
+    let latest = 0;
     for (let page = 0; page < maxPages; page += 1) {
       const date = this.dayDates
         ? new Date(from - 24 * 3600_000).toISOString().slice(0, 10)
@@ -457,7 +460,10 @@ export class KeycloakClient {
         // Latest first: an older event ends the reading (the day filter
         // returns more than asked).
         if (Number.isFinite(raw?.time) && raw.time < from) {
-          return { events, complete: true };
+          return { events, complete: true, latest };
+        }
+        if (Number.isFinite(raw?.time)) {
+          latest = Math.max(latest, raw.time);
         }
         const event = normalize(raw);
         if (event) {
@@ -465,10 +471,10 @@ export class KeycloakClient {
         }
       }
       if (results.length < PAGE_SIZE) {
-        return { events, complete: true };
+        return { events, complete: true, latest };
       }
     }
-    return { events, complete: false };
+    return { events, complete: false, latest };
   }
 
   /** The followed user events since `from`. */
@@ -514,14 +520,27 @@ export class KeycloakClient {
     }, 0);
   }
 
-  /** Whether the brute-force protection holds the account locked now. */
+  /**
+   * Whether the brute-force protection holds the account locked now: a
+   * temporary lockout in the brute-force status, a permanent one disables the
+   * account (`enabled: false`) until an administrator enables it again.
+   */
   async isLocked(realm, userId) {
+    const id = encodeURIComponent(userId);
     const data = object(
-      await this.get(
-        `${this.realmPath(realm)}/attack-detection/brute-force/users/${encodeURIComponent(userId)}`,
-      ),
+      await this.get(`${this.realmPath(realm)}/attack-detection/brute-force/users/${id}`),
     );
-    return data.disabled === true;
+    if (data.disabled === true) {
+      return true;
+    }
+    try {
+      return object(await this.get(`${this.realmPath(realm)}/users/${id}`)).enabled === false;
+    } catch (err) {
+      if (err instanceof KeycloakError && err.status === 404) {
+        return false; // deleted
+      }
+      throw err;
+    }
   }
 
   /** The user name of an account, '' when unknown (deleted). */
