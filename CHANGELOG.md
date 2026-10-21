@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-21
+
 ### Added
 
 - One "Keycloak <realm>" device per realm watched (up to 10): reachable, failed
@@ -27,3 +29,6 @@ the notes of the version's GitHub Release.
 - "Test the connection" action. A service account with read roles only,
   token renewed before it expires; nothing announced twice across restarts.
 - Texts and documentation in English, French, German and Spanish.
+
+[Unreleased]: https://github.com/guim31/gladys-keycloak/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/guim31/gladys-keycloak/releases/tag/v1.0.0
