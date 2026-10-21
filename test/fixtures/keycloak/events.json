@@ -1,0 +1,114 @@
+[
+  {
+    "id": "f0cc4608-c602-4bc0-9031-1ec48b02a124",
+    "time": 1792593188997,
+    "type": "LOGIN_ERROR",
+    "realmId": "6d596617-f8fa-49e7-a151-ec48f2940279",
+    "clientId": "test-app",
+    "ipAddress": "192.0.2.10",
+    "error": "user_not_found",
+    "details": {
+      "auth_method": "openid-connect",
+      "grant_type": "password",
+      "client_auth_method": "client-secret",
+      "username": "ghost"
+    }
+  },
+  {
+    "id": "66e83f5f-5599-4979-9a6f-a5a96dac6092",
+    "time": 1792593188934,
+    "type": "LOGIN_ERROR",
+    "realmId": "6d596617-f8fa-49e7-a151-ec48f2940279",
+    "clientId": "test-app",
+    "userId": "1411df0b-5aa8-40c5-87a6-fa85321fc7f2",
+    "ipAddress": "192.0.2.10",
+    "error": "user_temporarily_disabled",
+    "details": {
+      "auth_method": "openid-connect",
+      "grant_type": "password",
+      "client_auth_method": "client-secret",
+      "username": "bob"
+    }
+  },
+  {
+    "id": "9b1d8f72-8bfc-4fa2-a283-e0de2f2a1071",
+    "time": 1792593188881,
+    "type": "LOGIN_ERROR",
+    "realmId": "6d596617-f8fa-49e7-a151-ec48f2940279",
+    "clientId": "test-app",
+    "userId": "1411df0b-5aa8-40c5-87a6-fa85321fc7f2",
+    "ipAddress": "192.0.2.10",
+    "error": "user_temporarily_disabled",
+    "details": {
+      "auth_method": "openid-connect",
+      "grant_type": "password",
+      "client_auth_method": "client-secret",
+      "username": "bob"
+    }
+  },
+  {
+    "id": "38614dbe-a860-420c-9a6f-cbed21e11af5",
+    "time": 1792593188826,
+    "type": "USER_DISABLED_BY_TEMPORARY_LOCKOUT",
+    "realmId": "6d596617-f8fa-49e7-a151-ec48f2940279",
+    "userId": "1411df0b-5aa8-40c5-87a6-fa85321fc7f2",
+    "ipAddress": "192.0.2.10",
+    "details": {
+      "reason": "brute_force_attack detected",
+      "not_before": "2026-10-21T14:34:08",
+      "num_failures": "2"
+    }
+  },
+  {
+    "id": "384f1709-bbd1-4a75-b162-facc78f65057",
+    "time": 1792593188819,
+    "type": "LOGIN_ERROR",
+    "realmId": "6d596617-f8fa-49e7-a151-ec48f2940279",
+    "clientId": "test-app",
+    "userId": "1411df0b-5aa8-40c5-87a6-fa85321fc7f2",
+    "ipAddress": "192.0.2.10",
+    "error": "invalid_user_credentials",
+    "details": {
+      "auth_method": "openid-connect",
+      "grant_type": "password",
+      "client_auth_method": "client-secret",
+      "username": "bob"
+    }
+  },
+  {
+    "id": "724229e4-5457-4e1b-8c48-2c7f90743d93",
+    "time": 1792593188750,
+    "type": "LOGIN_ERROR",
+    "realmId": "6d596617-f8fa-49e7-a151-ec48f2940279",
+    "clientId": "test-app",
+    "userId": "1411df0b-5aa8-40c5-87a6-fa85321fc7f2",
+    "ipAddress": "192.0.2.10",
+    "error": "invalid_user_credentials",
+    "details": {
+      "auth_method": "openid-connect",
+      "grant_type": "password",
+      "client_auth_method": "client-secret",
+      "username": "bob"
+    }
+  },
+  {
+    "id": "9ebecd02-e808-4f3e-b15f-c66b77704cbc",
+    "time": 1792593188639,
+    "type": "LOGIN",
+    "realmId": "6d596617-f8fa-49e7-a151-ec48f2940279",
+    "clientId": "test-app",
+    "userId": "803097b8-2904-467c-90e6-50ad7fbcda86",
+    "sessionId": "4f98f4b1-8c4a-2cc9-9d19-af57f87341ea",
+    "ipAddress": "192.0.2.10",
+    "details": {
+      "auth_method": "openid-connect",
+      "token_id": "onrtro:b443959c-451b-0e28-0295-9e339e0466cb",
+      "grant_type": "password",
+      "refresh_token_type": "Refresh",
+      "scope": "profile email",
+      "refresh_token_id": "1a7b22ec-9bd6-8e3f-e616-36769872b366",
+      "client_auth_method": "client-secret",
+      "username": "alice"
+    }
+  }
+]

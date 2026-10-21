@@ -1,177 +1,954 @@
 {
   "manifest_version": 1,
   "type": "device",
-  "name": "Demo Devices Template",
+  "name": "Keycloak",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "Keycloak in Gladys: failed logins, locked accounts and sensitive admin events in your scenes.",
+    "fr": "Keycloak dans Gladys : échecs de connexion, comptes bloqués et actions d'admin sensibles en scènes.",
+    "de": "Keycloak in Gladys: fehlgeschlagene Anmeldungen, gesperrte Konten und Admin-Aktionen in Szenen.",
+    "es": "Keycloak en Gladys: inicios de sesión fallidos, cuentas bloqueadas y acciones de admin en escenas."
   },
   "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
+  "docker_image": "ghcr.io/guim31/gladys-keycloak:1.0.0",
   "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "cover_image": "https://raw.githubusercontent.com/guim31/gladys-keycloak/main/cover.png",
+  "categories": ["security", "network"],
+  "transports": ["local"],
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
+      "label": {
+        "en": "Your Keycloak server",
+        "fr": "Votre serveur Keycloak",
+        "de": "Dein Keycloak-Server",
+        "es": "Su servidor Keycloak"
+      },
       "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+        "en": "In Keycloak, create a confidential client with a service account and give it the roles view-events, view-users and view-realm of realm-management. Turn on the user and admin events of the realm. The guide shows every step.",
+        "fr": "Dans Keycloak, créez un client confidentiel avec compte de service et donnez-lui les rôles view-events, view-users et view-realm de realm-management. Activez les événements utilisateur et d'administration du realm. Le guide montre chaque étape.",
+        "de": "Lege in Keycloak einen vertraulichen Client mit Dienstkonto an und gib ihm die Rollen view-events, view-users und view-realm von realm-management. Schalte die Benutzer- und Admin-Ereignisse des Realms ein. Die Anleitung zeigt jeden Schritt.",
+        "es": "En Keycloak, cree un cliente confidencial con cuenta de servicio y asígnele los roles view-events, view-users y view-realm de realm-management. Active los eventos de usuario y de administración del realm. La guía muestra cada paso."
       },
       "links": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "url": "https://github.com/guim31/gladys-keycloak/blob/main/docs/en.md",
+          "label": {
+            "en": "Setup guide",
+            "fr": "Guide d'installation",
+            "de": "Einrichtungsanleitung",
+            "es": "Guía de instalación"
+          }
+        },
+        {
+          "url": "https://www.keycloak.org/docs-api/latest/rest-api/index.html",
+          "label": {
+            "en": "Keycloak Admin REST API",
+            "fr": "API d'administration de Keycloak",
+            "de": "Keycloak-Admin-REST-API",
+            "es": "API de administración de Keycloak"
+          }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
+      "key": "url",
+      "type": "string",
+      "label": {
+        "en": "Address of Keycloak",
+        "fr": "Adresse de Keycloak",
+        "de": "Adresse von Keycloak",
+        "es": "Dirección de Keycloak"
       },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
-      "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
+      "description": {
+        "en": "The address you open Keycloak with, or its local address (port 8080 or 8443). Add /auth for Keycloak 16 and older.",
+        "fr": "L'adresse avec laquelle vous ouvrez Keycloak, ou son adresse locale (port 8080 ou 8443). Ajoutez /auth pour Keycloak 16 et avant.",
+        "de": "Die Adresse, mit der du Keycloak öffnest, oder seine lokale Adresse (Port 8080 oder 8443). Für Keycloak 16 und älter /auth anhängen.",
+        "es": "La dirección con la que abre Keycloak, o su dirección local (puerto 8080 u 8443). Añada /auth para Keycloak 16 y anteriores."
+      },
+      "placeholder": {
+        "en": "e.g. https://sso.example.com",
+        "fr": "ex. https://sso.example.com",
+        "de": "z. B. https://sso.example.com",
+        "es": "p. ej. https://sso.example.com"
+      },
+      "required": false
     },
     {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
-      "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
+      "key": "realms",
+      "type": "string",
+      "label": {
+        "en": "Realms to watch",
+        "fr": "Realms à surveiller",
+        "de": "Zu überwachende Realms",
+        "es": "Realms que vigilar"
       },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
-      "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
+      "description": {
+        "en": "Names of the realms, separated by commas: one device each (10 at most).",
+        "fr": "Noms des realms, séparés par des virgules : un appareil chacun (10 au plus).",
+        "de": "Namen der Realms, durch Kommas getrennt: je ein Gerät (höchstens 10).",
+        "es": "Nombres de los realms, separados por comas: un dispositivo cada uno (10 como máximo)."
+      },
+      "placeholder": {
+        "en": "e.g. home, family",
+        "fr": "ex. maison, famille",
+        "de": "z. B. home, familie",
+        "es": "p. ej. casa, familia"
+      },
+      "required": false
     },
     {
-      "key": "unit",
-      "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
+      "key": "client_realm",
+      "type": "string",
+      "label": {
+        "en": "Realm of the client",
+        "fr": "Realm du client",
+        "de": "Realm des Clients",
+        "es": "Realm del cliente"
+      },
+      "description": {
+        "en": "Where the client lives. Empty: the first realm watched. To watch several realms, create the client in master.",
+        "fr": "Là où vit le client. Vide : le premier realm surveillé. Pour surveiller plusieurs realms, créez le client dans master.",
+        "de": "Wo der Client liegt. Leer: der erste überwachte Realm. Für mehrere Realms lege den Client in master an.",
+        "es": "Donde está el cliente. Vacío: el primer realm vigilado. Para vigilar varios realms, cree el cliente en master."
+      },
+      "placeholder": {
+        "en": "e.g. master",
+        "fr": "ex. master",
+        "de": "z. B. master",
+        "es": "p. ej. master"
+      },
+      "required": false
+    },
+    {
+      "key": "client_id",
+      "type": "string",
+      "label": {
+        "en": "Client ID",
+        "fr": "Identifiant du client",
+        "de": "Client-ID",
+        "es": "ID del cliente"
+      },
+      "placeholder": {
+        "en": "e.g. gladys",
+        "fr": "ex. gladys",
+        "de": "z. B. gladys",
+        "es": "p. ej. gladys"
+      },
+      "required": false
+    },
+    {
+      "key": "client_secret",
+      "type": "secret",
+      "label": {
+        "en": "Client secret",
+        "fr": "Secret du client",
+        "de": "Client-Geheimnis",
+        "es": "Secreto del cliente"
+      },
+      "description": {
+        "en": "Credentials tab of the client. Read-only: Gladys changes nothing in Keycloak.",
+        "fr": "Onglet Credentials du client. Lecture seule : Gladys ne modifie rien dans Keycloak.",
+        "de": "Reiter Credentials des Clients. Nur lesend: Gladys ändert nichts in Keycloak.",
+        "es": "Pestaña Credentials del cliente. Solo lectura: Gladys no modifica nada en Keycloak."
+      },
+      "required": false
+    },
+    {
+      "key": "alerts",
+      "type": "section",
+      "label": {
+        "en": "Alerts",
+        "fr": "Alertes",
+        "de": "Alarme",
+        "es": "Alertas"
+      },
+      "description": {
+        "en": "A series of failed logins fires once when this many failures happen in a realm within the chosen window.",
+        "fr": "Une série d'échecs se déclenche une fois quand ce nombre d'échecs survient dans un realm, dans la fenêtre choisie.",
+        "de": "Eine Serie von Fehlversuchen löst einmal aus, wenn so viele Fehlversuche in einem Realm im gewählten Zeitfenster auftreten.",
+        "es": "Una serie de fallos se dispara una vez cuando ocurren tantos fallos en un realm dentro de la ventana elegida."
+      }
+    },
+    {
+      "key": "burst_count",
+      "type": "number",
+      "label": {
+        "en": "Failed logins in a series",
+        "fr": "Échecs pour une série",
+        "de": "Fehlversuche für eine Serie",
+        "es": "Fallos para una serie"
+      },
       "required": false,
-      "default": "celsius",
+      "default": 5,
+      "min": 2,
+      "max": 100
+    },
+    {
+      "key": "burst_window",
+      "type": "select",
+      "label": {
+        "en": "Window of the series",
+        "fr": "Fenêtre de la série",
+        "de": "Zeitfenster der Serie",
+        "es": "Ventana de la serie"
+      },
+      "required": false,
+      "default": "10",
       "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
+        {
+          "value": "5",
+          "label": {
+            "en": "5 minutes",
+            "fr": "5 minutes",
+            "de": "5 Minuten",
+            "es": "5 minutos"
+          }
+        },
+        {
+          "value": "10",
+          "label": {
+            "en": "10 minutes",
+            "fr": "10 minutes",
+            "de": "10 Minuten",
+            "es": "10 minutos"
+          }
+        },
+        {
+          "value": "15",
+          "label": {
+            "en": "15 minutes",
+            "fr": "15 minutes",
+            "de": "15 Minuten",
+            "es": "15 minutos"
+          }
+        },
+        {
+          "value": "30",
+          "label": {
+            "en": "30 minutes",
+            "fr": "30 minutes",
+            "de": "30 Minuten",
+            "es": "30 minutos"
+          }
+        },
+        {
+          "value": "60",
+          "label": {
+            "en": "1 hour",
+            "fr": "1 heure",
+            "de": "1 Stunde",
+            "es": "1 hora"
+          }
+        }
       ]
     },
     {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
+      "key": "options",
+      "type": "section",
+      "label": {
+        "en": "Options",
+        "fr": "Options",
+        "de": "Optionen",
+        "es": "Opciones"
+      }
+    },
+    {
+      "key": "poll_interval",
+      "type": "select",
+      "label": {
+        "en": "Refresh interval",
+        "fr": "Intervalle de rafraîchissement",
+        "de": "Aktualisierungsintervall",
+        "es": "Intervalo de actualización"
+      },
       "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
+        "en": "How often Keycloak is read: only the new events.",
+        "fr": "Fréquence de lecture de Keycloak : seulement les nouveaux événements.",
+        "de": "Wie oft Keycloak gelesen wird: nur die neuen Ereignisse.",
+        "es": "Frecuencia de lectura de Keycloak: solo los eventos nuevos."
       },
       "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
+      "default": "60",
+      "options": [
+        {
+          "value": "30",
+          "label": {
+            "en": "30 seconds",
+            "fr": "30 secondes",
+            "de": "30 Sekunden",
+            "es": "30 segundos"
+          }
+        },
+        {
+          "value": "60",
+          "label": {
+            "en": "1 minute",
+            "fr": "1 minute",
+            "de": "1 Minute",
+            "es": "1 minuto"
+          }
+        },
+        {
+          "value": "120",
+          "label": {
+            "en": "2 minutes",
+            "fr": "2 minutes",
+            "de": "2 Minuten",
+            "es": "2 minutos"
+          }
+        },
+        {
+          "value": "300",
+          "label": {
+            "en": "5 minutes",
+            "fr": "5 minutes",
+            "de": "5 Minuten",
+            "es": "5 minutos"
+          }
+        }
+      ]
+    },
+    {
+      "key": "language",
+      "type": "select",
+      "label": {
+        "en": "Language of the names",
+        "fr": "Langue des noms",
+        "de": "Sprache der Namen",
+        "es": "Idioma de los nombres"
+      },
+      "description": {
+        "en": "Language of the feature names (set when the device is added) and of the scene results.",
+        "fr": "Langue des noms de fonctionnalités (fixés à l'ajout de l'appareil) et des résultats de scène.",
+        "de": "Sprache der Funktionsnamen (beim Hinzufügen des Geräts festgelegt) und der Szenenergebnisse.",
+        "es": "Idioma de los nombres de funciones (fijados al añadir el dispositivo) y de los resultados de escena."
+      },
+      "required": false,
+      "default": "fr",
+      "options": [
+        {
+          "value": "en",
+          "label": {
+            "en": "English",
+            "fr": "Anglais",
+            "de": "Englisch",
+            "es": "Inglés"
+          }
+        },
+        {
+          "value": "fr",
+          "label": {
+            "en": "French",
+            "fr": "Français",
+            "de": "Französisch",
+            "es": "Francés"
+          }
+        },
+        {
+          "value": "de",
+          "label": {
+            "en": "German",
+            "fr": "Allemand",
+            "de": "Deutsch",
+            "es": "Alemán"
+          }
+        },
+        {
+          "value": "es",
+          "label": {
+            "en": "Spanish",
+            "fr": "Espagnol",
+            "de": "Spanisch",
+            "es": "Español"
+          }
+        }
+      ]
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
-      "timeout_seconds": 30
-    },
-    {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
-        }
-      ]
+      "key": "test_connection",
+      "label": {
+        "en": "Test the connection",
+        "fr": "Tester la connexion",
+        "de": "Verbindung testen",
+        "es": "Probar la conexión"
+      },
+      "timeout_seconds": 60
     }
   ],
   "scene_triggers": [
     {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
+      "key": "login_failed",
+      "label": {
+        "en": "Failed login",
+        "fr": "Échec de connexion",
+        "de": "Fehlgeschlagene Anmeldung",
+        "es": "Inicio de sesión fallido"
+      },
       "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
+        "en": "Someone typed a wrong password (or an unknown user name) in Keycloak.",
+        "fr": "Quelqu'un a saisi un mauvais mot de passe (ou un nom d'utilisateur inconnu) dans Keycloak.",
+        "de": "Jemand hat in Keycloak ein falsches Passwort (oder einen unbekannten Benutzernamen) eingegeben.",
+        "es": "Alguien ha escrito una contraseña incorrecta (o un nombre de usuario desconocido) en Keycloak."
       },
       "fields": [
         {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
+          "key": "realm",
+          "type": "string",
+          "label": {
+            "en": "Realm (empty: any)",
+            "fr": "Realm (vide : tous)",
+            "de": "Realm (leer: alle)",
+            "es": "Realm (vacío: todos)"
+          }
         },
         {
-          "key": "target",
+          "key": "username",
+          "type": "string",
+          "label": {
+            "en": "User name (empty: any)",
+            "fr": "Nom d'utilisateur (vide : tous)",
+            "de": "Benutzername (leer: alle)",
+            "es": "Nombre de usuario (vacío: todos)"
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "realm",
+          "type": "string",
+          "label": {
+            "en": "Realm",
+            "fr": "Realm",
+            "de": "Realm",
+            "es": "Realm"
+          }
+        },
+        {
+          "key": "username",
+          "type": "string",
+          "label": {
+            "en": "User name typed",
+            "fr": "Nom d'utilisateur saisi",
+            "de": "Eingegebener Benutzername",
+            "es": "Nombre de usuario escrito"
+          }
+        },
+        {
+          "key": "ip",
+          "type": "string",
+          "label": {
+            "en": "Address",
+            "fr": "Adresse",
+            "de": "Adresse",
+            "es": "Dirección"
+          }
+        },
+        {
+          "key": "client",
+          "type": "string",
+          "label": {
+            "en": "Application (client)",
+            "fr": "Application (client)",
+            "de": "Anwendung (Client)",
+            "es": "Aplicación (cliente)"
+          }
+        },
+        {
+          "key": "error",
+          "type": "string",
+          "label": {
+            "en": "Keycloak error code",
+            "fr": "Code d'erreur Keycloak",
+            "de": "Keycloak-Fehlercode",
+            "es": "Código de error de Keycloak"
+          }
+        }
+      ]
+    },
+    {
+      "key": "login_failures_burst",
+      "label": {
+        "en": "Series of failed logins",
+        "fr": "Série d'échecs de connexion",
+        "de": "Serie fehlgeschlagener Anmeldungen",
+        "es": "Serie de inicios de sesión fallidos"
+      },
+      "description": {
+        "en": "The failed logins of a realm reach the number set in the configuration within its window: once per series.",
+        "fr": "Les échecs d'un realm atteignent le nombre réglé dans la configuration, dans sa fenêtre : une fois par série.",
+        "de": "Die Fehlversuche eines Realms erreichen die eingestellte Zahl in ihrem Zeitfenster: einmal pro Serie.",
+        "es": "Los fallos de un realm alcanzan el número fijado en la configuración, dentro de su ventana: una vez por serie."
+      },
+      "fields": [
+        {
+          "key": "realm",
+          "type": "string",
+          "label": {
+            "en": "Realm (empty: any)",
+            "fr": "Realm (vide : tous)",
+            "de": "Realm (leer: alle)",
+            "es": "Realm (vacío: todos)"
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "realm",
+          "type": "string",
+          "label": {
+            "en": "Realm",
+            "fr": "Realm",
+            "de": "Realm",
+            "es": "Realm"
+          }
+        },
+        {
+          "key": "count",
+          "type": "number",
+          "label": {
+            "en": "Failed logins in the window",
+            "fr": "Échecs dans la fenêtre",
+            "de": "Fehlversuche im Zeitfenster",
+            "es": "Fallos en la ventana"
+          }
+        },
+        {
+          "key": "window_minutes",
+          "type": "number",
+          "label": {
+            "en": "Window (minutes)",
+            "fr": "Fenêtre (minutes)",
+            "de": "Zeitfenster (Minuten)",
+            "es": "Ventana (minutos)"
+          }
+        },
+        {
+          "key": "usernames",
+          "type": "number",
+          "label": {
+            "en": "Different user names",
+            "fr": "Noms d'utilisateur différents",
+            "de": "Verschiedene Benutzernamen",
+            "es": "Nombres de usuario distintos"
+          }
+        },
+        {
+          "key": "addresses",
+          "type": "number",
+          "label": {
+            "en": "Different addresses",
+            "fr": "Adresses différentes",
+            "de": "Verschiedene Adressen",
+            "es": "Direcciones distintas"
+          }
+        },
+        {
+          "key": "username",
+          "type": "string",
+          "label": {
+            "en": "Latest user name typed",
+            "fr": "Dernier nom d'utilisateur saisi",
+            "de": "Zuletzt eingegebener Benutzername",
+            "es": "Último nombre de usuario escrito"
+          }
+        },
+        {
+          "key": "ip",
+          "type": "string",
+          "label": {
+            "en": "Latest address",
+            "fr": "Dernière adresse",
+            "de": "Letzte Adresse",
+            "es": "Última dirección"
+          }
+        }
+      ]
+    },
+    {
+      "key": "account_locked",
+      "label": {
+        "en": "Account locked",
+        "fr": "Compte bloqué",
+        "de": "Konto gesperrt",
+        "es": "Cuenta bloqueada"
+      },
+      "description": {
+        "en": "The brute-force protection of Keycloak locks an account after too many failed logins.",
+        "fr": "La protection force brute de Keycloak bloque un compte après trop d'échecs de connexion.",
+        "de": "Der Brute-Force-Schutz von Keycloak sperrt ein Konto nach zu vielen Fehlversuchen.",
+        "es": "La protección contra fuerza bruta de Keycloak bloquea una cuenta tras demasiados fallos."
+      },
+      "fields": [
+        {
+          "key": "realm",
+          "type": "string",
+          "label": {
+            "en": "Realm (empty: any)",
+            "fr": "Realm (vide : tous)",
+            "de": "Realm (leer: alle)",
+            "es": "Realm (vacío: todos)"
+          }
+        },
+        {
+          "key": "username",
+          "type": "string",
+          "label": {
+            "en": "User name (empty: any)",
+            "fr": "Nom d'utilisateur (vide : tous)",
+            "de": "Benutzername (leer: alle)",
+            "es": "Nombre de usuario (vacío: todos)"
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "realm",
+          "type": "string",
+          "label": {
+            "en": "Realm",
+            "fr": "Realm",
+            "de": "Realm",
+            "es": "Realm"
+          }
+        },
+        {
+          "key": "username",
+          "type": "string",
+          "label": {
+            "en": "User name",
+            "fr": "Nom d'utilisateur",
+            "de": "Benutzername",
+            "es": "Nombre de usuario"
+          }
+        },
+        {
+          "key": "ip",
+          "type": "string",
+          "label": {
+            "en": "Address of the last failure",
+            "fr": "Adresse du dernier échec",
+            "de": "Adresse des letzten Fehlversuchs",
+            "es": "Dirección del último fallo"
+          }
+        },
+        {
+          "key": "lockout",
+          "type": "string",
+          "label": {
+            "en": "Lockout (temporary, permanent)",
+            "fr": "Blocage (temporary, permanent)",
+            "de": "Sperre (temporary, permanent)",
+            "es": "Bloqueo (temporary, permanent)"
+          }
+        }
+      ]
+    },
+    {
+      "key": "admin_event",
+      "label": {
+        "en": "Sensitive admin event",
+        "fr": "Action d'administration sensible",
+        "de": "Sensible Verwaltungsaktion",
+        "es": "Acción de administración sensible"
+      },
+      "description": {
+        "en": "In a realm, an admin role is granted, a user created or deleted, a client or the realm changed.",
+        "fr": "Dans un realm, un rôle admin est attribué, un utilisateur créé ou supprimé, un client ou le realm modifié.",
+        "de": "In einem Realm wird eine Adminrolle erteilt, ein Benutzer angelegt oder gelöscht, ein Client oder der Realm geändert.",
+        "es": "En un realm, se asigna un rol de admin, se crea o elimina un usuario, se modifica un cliente o el realm."
+      },
+      "fields": [
+        {
+          "key": "realm",
+          "type": "string",
+          "label": {
+            "en": "Realm (empty: any)",
+            "fr": "Realm (vide : tous)",
+            "de": "Realm (leer: alle)",
+            "es": "Realm (vacío: todos)"
+          }
+        },
+        {
+          "key": "kind",
           "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
+          "label": {
+            "en": "Event (empty: any)",
+            "fr": "Événement (vide : tous)",
+            "de": "Ereignis (leer: alle)",
+            "es": "Evento (vacío: todos)"
+          },
           "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
+            {
+              "value": "admin_role_granted",
+              "label": {
+                "en": "Admin role granted",
+                "fr": "Rôle admin attribué",
+                "de": "Adminrolle erteilt",
+                "es": "Rol de admin asignado"
+              }
+            },
+            {
+              "value": "role_granted",
+              "label": {
+                "en": "Other role granted",
+                "fr": "Autre rôle attribué",
+                "de": "Andere Rolle erteilt",
+                "es": "Otro rol asignado"
+              }
+            },
+            {
+              "value": "user_created",
+              "label": {
+                "en": "User created",
+                "fr": "Utilisateur créé",
+                "de": "Benutzer angelegt",
+                "es": "Usuario creado"
+              }
+            },
+            {
+              "value": "user_deleted",
+              "label": {
+                "en": "User deleted",
+                "fr": "Utilisateur supprimé",
+                "de": "Benutzer gelöscht",
+                "es": "Usuario eliminado"
+              }
+            },
+            {
+              "value": "client_changed",
+              "label": {
+                "en": "Client created, changed or deleted",
+                "fr": "Client créé, modifié ou supprimé",
+                "de": "Client angelegt, geändert oder gelöscht",
+                "es": "Cliente creado, modificado o eliminado"
+              }
+            },
+            {
+              "value": "realm_changed",
+              "label": {
+                "en": "Realm settings changed",
+                "fr": "Réglages du realm modifiés",
+                "de": "Realm-Einstellungen geändert",
+                "es": "Ajustes del realm modificados"
+              }
+            }
           ]
         }
       ],
       "variables": [
         {
+          "key": "realm",
+          "type": "string",
+          "label": {
+            "en": "Realm",
+            "fr": "Realm",
+            "de": "Realm",
+            "es": "Realm"
+          }
+        },
+        {
+          "key": "kind",
+          "type": "string",
+          "label": {
+            "en": "Event",
+            "fr": "Événement",
+            "de": "Ereignis",
+            "es": "Evento"
+          }
+        },
+        {
+          "key": "operation",
+          "type": "string",
+          "label": {
+            "en": "Operation (CREATE, UPDATE, DELETE)",
+            "fr": "Opération (CREATE, UPDATE, DELETE)",
+            "de": "Vorgang (CREATE, UPDATE, DELETE)",
+            "es": "Operación (CREATE, UPDATE, DELETE)"
+          }
+        },
+        {
+          "key": "resource",
+          "type": "string",
+          "label": {
+            "en": "Resource type",
+            "fr": "Type de ressource",
+            "de": "Ressourcentyp",
+            "es": "Tipo de recurso"
+          }
+        },
+        {
           "key": "target",
           "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
+          "label": {
+            "en": "User, client or roles (if known)",
+            "fr": "Utilisateur, client ou rôles (si connus)",
+            "de": "Benutzer, Client oder Rollen (falls bekannt)",
+            "es": "Usuario, cliente o roles (si se conocen)"
+          }
+        },
+        {
+          "key": "ip",
+          "type": "string",
+          "label": {
+            "en": "Address of the administrator",
+            "fr": "Adresse de l'administrateur",
+            "de": "Adresse des Administrators",
+            "es": "Dirección del administrador"
+          }
         }
       ]
     }
   ],
   "scene_actions": [
     {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
+      "key": "get_status",
+      "label": {
+        "en": "Keycloak state",
+        "fr": "État de Keycloak",
+        "de": "Zustand von Keycloak",
+        "es": "Estado de Keycloak"
       },
-      "timeout_seconds": 15,
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
-        }
-      ],
+      "description": {
+        "en": "Sums up Keycloak for a message: failed and successful logins, locked accounts, and a ready-made sentence.",
+        "fr": "Résume Keycloak pour un message : échecs et connexions, comptes bloqués, et une phrase toute faite.",
+        "de": "Fasst Keycloak für eine Nachricht zusammen: Fehlversuche und Anmeldungen, gesperrte Konten und ein fertiger Satz.",
+        "es": "Resume Keycloak para un mensaje: fallos e inicios de sesión, cuentas bloqueadas y una frase lista."
+      },
+      "timeout_seconds": 60,
       "outputs": [
         {
-          "key": "signalled",
+          "key": "reachable",
           "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
+          "label": {
+            "en": "Reachable",
+            "fr": "Joignable",
+            "de": "Erreichbar",
+            "es": "Accesible"
+          }
+        },
+        {
+          "key": "failed_logins_1h",
+          "type": "number",
+          "label": {
+            "en": "Failed logins (1 h)",
+            "fr": "Échecs de connexion (1 h)",
+            "de": "Fehlgeschlagene Anmeldungen (1 h)",
+            "es": "Inicios de sesión fallidos (1 h)"
+          }
+        },
+        {
+          "key": "failed_logins_24h",
+          "type": "number",
+          "label": {
+            "en": "Failed logins (24 h)",
+            "fr": "Échecs de connexion (24 h)",
+            "de": "Fehlgeschlagene Anmeldungen (24 h)",
+            "es": "Inicios de sesión fallidos (24 h)"
+          }
+        },
+        {
+          "key": "logins_24h",
+          "type": "number",
+          "label": {
+            "en": "Logins (24 h)",
+            "fr": "Connexions (24 h)",
+            "de": "Anmeldungen (24 h)",
+            "es": "Inicios de sesión (24 h)"
+          }
+        },
+        {
+          "key": "locked_accounts",
+          "type": "number",
+          "label": {
+            "en": "Locked accounts",
+            "fr": "Comptes bloqués",
+            "de": "Gesperrte Konten",
+            "es": "Cuentas bloqueadas"
+          }
+        },
+        {
+          "key": "users",
+          "type": "number",
+          "label": {
+            "en": "Users",
+            "fr": "Utilisateurs",
+            "de": "Benutzer",
+            "es": "Usuarios"
+          }
+        },
+        {
+          "key": "sessions",
+          "type": "number",
+          "label": {
+            "en": "Active sessions",
+            "fr": "Sessions actives",
+            "de": "Aktive Sitzungen",
+            "es": "Sesiones activas"
+          }
+        },
+        {
+          "key": "version",
+          "type": "string",
+          "label": {
+            "en": "Version",
+            "fr": "Version",
+            "de": "Version",
+            "es": "Versión"
+          }
+        },
+        {
+          "key": "last_failed_username",
+          "type": "string",
+          "label": {
+            "en": "Latest failed user name",
+            "fr": "Dernier nom en échec",
+            "de": "Letzter fehlgeschlagener Name",
+            "es": "Último nombre fallido"
+          }
+        },
+        {
+          "key": "last_failed_ip",
+          "type": "string",
+          "label": {
+            "en": "Latest failed address",
+            "fr": "Dernière adresse en échec",
+            "de": "Letzte fehlgeschlagene Adresse",
+            "es": "Última dirección fallida"
+          }
+        },
+        {
+          "key": "sentence",
+          "type": "string",
+          "label": {
+            "en": "Sentence",
+            "fr": "Phrase",
+            "de": "Satz",
+            "es": "Frase"
+          }
         }
       ]
     }
   ],
   "widgets": [
     {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
-      "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
+      "key": "security_events",
+      "label": {
+        "en": "Keycloak security",
+        "fr": "Sécurité Keycloak",
+        "de": "Keycloak-Sicherheit",
+        "es": "Seguridad Keycloak"
       },
-      "icon": "activity",
-      "action_timeout_seconds": 15
+      "description": {
+        "en": "Failed and successful logins of the day, locked accounts, and the latest events.",
+        "fr": "Échecs et connexions du jour, comptes bloqués, et les derniers événements.",
+        "de": "Fehlversuche und Anmeldungen des Tages, gesperrte Konten und die letzten Ereignisse.",
+        "es": "Fallos e inicios de sesión del día, cuentas bloqueadas y los últimos eventos."
+      },
+      "icon": "shield",
+      "action_timeout_seconds": 60
     }
   ]
 }
