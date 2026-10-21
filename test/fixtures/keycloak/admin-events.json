@@ -1,0 +1,151 @@
+[
+  {
+    "id": "40424e01-48b7-4625-9988-f63326d2f316",
+    "time": 1792593189555,
+    "realmId": "6d596617-f8fa-49e7-a151-ec48f2940279",
+    "authDetails": {
+      "realmId": "fd00aef4-a251-4c88-9880-cbdd5a341032",
+      "clientId": "468f73d4-e645-415c-9039-33e9487fd251",
+      "userId": "fa80e6c2-be5e-4569-ae9f-c6b2b251371b",
+      "ipAddress": "192.0.2.10"
+    },
+    "operationType": "UPDATE",
+    "resourceType": "CLIENT",
+    "resourcePath": "clients/0b3f3735-2dc6-4a97-8626-b60f950d1831",
+    "representation": "{\"id\":\"0b3f3735-2dc6-4a97-8626-b60f950d1831\",\"clientId\":\"test-app\",\"description\":\"changed\",\"surrogateAuthRequired\":false,\"enabled\":true,\"alwaysDisplayInConsole\":false,\"clientAuthenticatorType\":\"client-secret\",\"redirectUris\":[],\"webOrigins\":[],\"notBefore\":0,\"bearerOnly\":false,\"consentRequired\":false,\"standardFlowEnabled\":true,\"implicitFlowEnabled\":false,\"directAccessGrantsEnabled\":true,\"serviceAccountsEnabled\":false,\"authorizationServicesEnabled\":false,\"publicClient\":true,\"frontchannelLogout\":false,\"protocol\":\"openid-connect\",\"attributes\":{\"realm_client\":\"false\"},\"authenticationFlowBindingOverrides\":{},\"fullScopeAllowed\":true,\"nodeReRegistrationTimeout\":-1,\"defaultClientScopes\":[\"web-origins\",\"acr\",\"profile\",\"roles\",\"basic\",\"email\"],\"optionalClientScopes\":[\"address\",\"phone\",\"offline_access\",\"organization\",\"microprofile-jwt\"],\"access\":{\"view\":true,\"configure\":true,\"manage\":true}}"
+  },
+  {
+    "id": "3063f92d-c7dc-482e-96a7-b7b4bbc533ea",
+    "time": 1792593189476,
+    "realmId": "6d596617-f8fa-49e7-a151-ec48f2940279",
+    "authDetails": {
+      "realmId": "fd00aef4-a251-4c88-9880-cbdd5a341032",
+      "clientId": "468f73d4-e645-415c-9039-33e9487fd251",
+      "userId": "fa80e6c2-be5e-4569-ae9f-c6b2b251371b",
+      "ipAddress": "192.0.2.10"
+    },
+    "operationType": "DELETE",
+    "resourceType": "USER",
+    "resourcePath": "users/0439ae4f-3f3c-4c0f-9fc1-3baa52e5ca3b"
+  },
+  {
+    "id": "fa2c11ee-3a54-4344-afdd-80d7bb2d25fe",
+    "time": 1792593189264,
+    "realmId": "6d596617-f8fa-49e7-a151-ec48f2940279",
+    "authDetails": {
+      "realmId": "fd00aef4-a251-4c88-9880-cbdd5a341032",
+      "clientId": "468f73d4-e645-415c-9039-33e9487fd251",
+      "userId": "fa80e6c2-be5e-4569-ae9f-c6b2b251371b",
+      "ipAddress": "192.0.2.10"
+    },
+    "operationType": "CREATE",
+    "resourceType": "REALM_ROLE_MAPPING",
+    "resourcePath": "users/0439ae4f-3f3c-4c0f-9fc1-3baa52e5ca3b/role-mappings/realm",
+    "representation": "[{\"id\":\"d4b1acc5-35f8-4c99-b019-027630fbd1c1\",\"name\":\"offline_access\",\"description\":\"${role_offline-access}\",\"composite\":false,\"clientRole\":false,\"containerId\":\"6d596617-f8fa-49e7-a151-ec48f2940279\",\"attributes\":{}}]"
+  },
+  {
+    "id": "b4338c18-3daa-421d-aaac-b73dd95bcd4d",
+    "time": 1792593189235,
+    "realmId": "6d596617-f8fa-49e7-a151-ec48f2940279",
+    "authDetails": {
+      "realmId": "fd00aef4-a251-4c88-9880-cbdd5a341032",
+      "clientId": "468f73d4-e645-415c-9039-33e9487fd251",
+      "userId": "fa80e6c2-be5e-4569-ae9f-c6b2b251371b",
+      "ipAddress": "192.0.2.10"
+    },
+    "operationType": "CREATE",
+    "resourceType": "CLIENT_ROLE_MAPPING",
+    "resourcePath": "users/0439ae4f-3f3c-4c0f-9fc1-3baa52e5ca3b/role-mappings/clients/67e14300-b0a9-4145-be47-de5344d406c4",
+    "representation": "[{\"id\":\"b51bbbd2-84df-4408-a0db-ceb3ca0bd5f8\",\"name\":\"realm-admin\",\"description\":\"${role_realm-admin}\",\"composite\":true,\"clientRole\":true,\"containerId\":\"67e14300-b0a9-4145-be47-de5344d406c4\",\"attributes\":{}}]"
+  },
+  {
+    "id": "29722774-e252-4234-a3c2-1e807e1f92d2",
+    "time": 1792593189101,
+    "realmId": "6d596617-f8fa-49e7-a151-ec48f2940279",
+    "authDetails": {
+      "realmId": "fd00aef4-a251-4c88-9880-cbdd5a341032",
+      "clientId": "468f73d4-e645-415c-9039-33e9487fd251",
+      "userId": "fa80e6c2-be5e-4569-ae9f-c6b2b251371b",
+      "ipAddress": "192.0.2.10"
+    },
+    "operationType": "CREATE",
+    "resourceType": "USER",
+    "resourcePath": "users/0439ae4f-3f3c-4c0f-9fc1-3baa52e5ca3b",
+    "representation": "{\"username\":\"carol\",\"enabled\":true}"
+  },
+  {
+    "id": "3c33cde7-5ede-4a6b-9b00-29f942366b13",
+    "time": 1792593138802,
+    "realmId": "6d596617-f8fa-49e7-a151-ec48f2940279",
+    "authDetails": {
+      "realmId": "fd00aef4-a251-4c88-9880-cbdd5a341032",
+      "clientId": "468f73d4-e645-415c-9039-33e9487fd251",
+      "userId": "fa80e6c2-be5e-4569-ae9f-c6b2b251371b",
+      "ipAddress": "192.0.2.10"
+    },
+    "operationType": "CREATE",
+    "resourceType": "CLIENT_ROLE_MAPPING",
+    "resourcePath": "users/22d96dae-d0bd-4e51-89f8-65e78aa08c61/role-mappings/clients/67e14300-b0a9-4145-be47-de5344d406c4",
+    "representation": "[{\"id\":\"1975d775-059e-4ae3-8b2b-cb9a9e1d1b64\",\"name\":\"view-users\",\"description\":\"${role_view-users}\",\"composite\":true,\"clientRole\":true,\"containerId\":\"67e14300-b0a9-4145-be47-de5344d406c4\"},{\"id\":\"f54858ed-3604-4fd9-afec-d3db7e1d4311\",\"name\":\"view-events\",\"description\":\"${role_view-events}\",\"composite\":false,\"clientRole\":true,\"containerId\":\"67e14300-b0a9-4145-be47-de5344d406c4\"},{\"id\":\"b23c3be9-b4fb-4b13-99b7-c5e39501c0da\",\"name\":\"view-realm\",\"description\":\"${role_view-realm}\",\"composite\":false,\"clientRole\":true,\"containerId\":\"67e14300-b0a9-4145-be47-de5344d406c4\"}]"
+  },
+  {
+    "id": "2722718c-5777-4ea8-96dd-6fb972564076",
+    "time": 1792593138641,
+    "realmId": "6d596617-f8fa-49e7-a151-ec48f2940279",
+    "authDetails": {
+      "realmId": "fd00aef4-a251-4c88-9880-cbdd5a341032",
+      "clientId": "468f73d4-e645-415c-9039-33e9487fd251",
+      "userId": "fa80e6c2-be5e-4569-ae9f-c6b2b251371b",
+      "ipAddress": "192.0.2.10"
+    },
+    "operationType": "CREATE",
+    "resourceType": "USER",
+    "resourcePath": "users/1411df0b-5aa8-40c5-87a6-fa85321fc7f2",
+    "representation": "{\"username\":\"bob\",\"firstName\":\"bob\",\"lastName\":\"Test\",\"email\":\"bob@example.com\",\"emailVerified\":true,\"enabled\":true}"
+  },
+  {
+    "id": "8e175135-1dbb-4ad5-b0ae-197cd61ae568",
+    "time": 1792593138573,
+    "realmId": "6d596617-f8fa-49e7-a151-ec48f2940279",
+    "authDetails": {
+      "realmId": "fd00aef4-a251-4c88-9880-cbdd5a341032",
+      "clientId": "468f73d4-e645-415c-9039-33e9487fd251",
+      "userId": "fa80e6c2-be5e-4569-ae9f-c6b2b251371b",
+      "ipAddress": "192.0.2.10"
+    },
+    "operationType": "CREATE",
+    "resourceType": "USER",
+    "resourcePath": "users/803097b8-2904-467c-90e6-50ad7fbcda86",
+    "representation": "{\"username\":\"alice\",\"firstName\":\"alice\",\"lastName\":\"Test\",\"email\":\"alice@example.com\",\"emailVerified\":true,\"enabled\":true}"
+  },
+  {
+    "id": "664eb68d-6145-4dc9-ae4f-5e52b6535e8a",
+    "time": 1792593138410,
+    "realmId": "6d596617-f8fa-49e7-a151-ec48f2940279",
+    "authDetails": {
+      "realmId": "fd00aef4-a251-4c88-9880-cbdd5a341032",
+      "clientId": "468f73d4-e645-415c-9039-33e9487fd251",
+      "userId": "fa80e6c2-be5e-4569-ae9f-c6b2b251371b",
+      "ipAddress": "192.0.2.10"
+    },
+    "operationType": "CREATE",
+    "resourceType": "CLIENT",
+    "resourcePath": "clients/25bfbc0e-fdd7-4484-9aeb-385a963127d6",
+    "representation": "{\"id\":\"25bfbc0e-fdd7-4484-9aeb-385a963127d6\",\"clientId\":\"gladys\",\"secret\":\"**********\",\"standardFlowEnabled\":false,\"serviceAccountsEnabled\":true,\"publicClient\":false}"
+  },
+  {
+    "id": "42f37538-f74e-4a2c-8856-5bcea522b350",
+    "time": 1792593138330,
+    "realmId": "6d596617-f8fa-49e7-a151-ec48f2940279",
+    "authDetails": {
+      "realmId": "fd00aef4-a251-4c88-9880-cbdd5a341032",
+      "clientId": "468f73d4-e645-415c-9039-33e9487fd251",
+      "userId": "fa80e6c2-be5e-4569-ae9f-c6b2b251371b",
+      "ipAddress": "192.0.2.10"
+    },
+    "operationType": "CREATE",
+    "resourceType": "CLIENT",
+    "resourcePath": "clients/0b3f3735-2dc6-4a97-8626-b60f950d1831",
+    "representation": "{\"id\":\"0b3f3735-2dc6-4a97-8626-b60f950d1831\",\"clientId\":\"test-app\",\"directAccessGrantsEnabled\":true,\"publicClient\":true}"
+  }
+]

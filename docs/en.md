@@ -1,61 +1,195 @@
-# Demo Devices Template
+# Keycloak
 
-This is the user documentation of the integration. Gladys re-hosts this file
-and shows a permanent **Documentation** link to it in the Configuration screen
-(in the user's language, with English as the fallback) — it is when
-configuring that the user needs it most. Keep the short onboarding hints in
-the `section` blocks of the manifest `config_schema`; put the long
-step-by-step (screenshots, troubleshooting…) here.
+[Keycloak](https://www.keycloak.org/) is an open-source identity and access
+management server: single sign-on (SSO), multi-factor authentication and user
+federation for the services of your home or your company. This integration
+brings its **security events** into Gladys: one device per realm with the
+failed and successful logins of the day, the users, the active sessions and the
+locked accounts; scenes that fire on a failed login, a series of failures, an
+account locked by the brute-force protection or a sensitive admin event (to
+send yourself a notification with the user and the address); and a dashboard
+widget with the latest events.
 
-## What you get
+Tested against a real Keycloak 26.4.7 (Docker, `start-dev`: a test realm,
+failed and successful logins played through the OpenID Connect API, a lockout
+by the brute-force detection, users and roles changed by an administrator).
+Developed without a production installation: feedback welcome on
+[the issues](https://github.com/guim31/gladys-keycloak/issues).
 
-Six demo devices show up after installation: a weather station (real data
-from Open-Meteo), a switch, a dimmable light, a smart plug with power
-metering, a motion sensor and a camera.
+## What you need
 
-## Configuration
+- Gladys Assistant 5.1.0 or later.
+- Keycloak, reachable from the Gladys machine (its public address, or its
+  local address on port 8080 or 8443). Tested with 26.4; an older version with
+  the same admin API should work.
+- The **events turned on** in each realm watched (below): Keycloak saves no
+  event by default.
+- A **confidential client with a service account** and three read roles
+  (below).
 
-1. Open the **Configuration** tab of the integration.
-2. Set the **latitude** and **longitude** the demo weather station should
-   observe (they default to Paris), and pick your temperature unit.
-   The **refresh interval** sets how often the weather station and the
-   plug's power are read: every 5 minutes by default, every minute at most.
-3. Save: the devices appear in the **Discovery** tab, ready to be added.
+Gladys only reads: nothing in Keycloak can be changed from Gladys.
 
-The **Prefer the local connection** toggle drives the demo plug: it reports
-the channel it actually uses as a badge (local or cloud), with an orange dot
-when it runs degraded (local refused, cloud fallback).
+## Getting started
 
-## Actions
+### 1. Turn on the events of the realm
 
-- **Test the weather provider** — performs a live request to Open-Meteo and
-  shows the current temperature and humidity under the button.
-- **Identify a device** — pick one of your devices in the list and it will
-  signal itself (the demo light "blinks" in the logs).
+In the admin console, choose the realm, then **Realm settings → Events**:
 
-## Scenes
+- tab **User events settings**: **Save events** on. The default event types
+  include `LOGIN`, `LOGIN_ERROR` and the lockouts. Keycloak keeps them for the
+  expiration set there: one day at least is needed for the 24-hour counts;
+- tab **Admin events settings**: **Save events** on, and **Include
+  representation** on, so that Gladys knows which user was created and which
+  roles were granted (without it, an admin role cannot be told from another).
 
-The integration adds its own cards to the scene editor (Gladys 5.1 or
-later), under the **Integrations** category:
+For the "Account locked" trigger: **Realm settings → Security defenses → Brute
+force detection**, choose a mode (lockout temporary or permanent).
 
-- **Motion detected** (trigger) — starts the scene when a demo motion sensor
-  sees something move. Optionally pick the sensor and what moved (person,
-  animal); left empty, any detection matches. The following actions can
-  read what moved with `{{triggerEvent.data.target}}`.
-- **Identify a device** (action) — makes the chosen device signal itself.
-  It returns whether the device could signal itself, so the following
-  actions can depend on it.
+### 2. Create the client
+
+**Clients → Create client**: type OpenID Connect, client ID `gladys`. Next
+page: **Client authentication** on, tick **Service accounts roles** only
+(untick "Standard flow" and "Direct access grants"). Save, then copy the secret
+from the **Credentials** tab.
+
+### 3. Give it the read roles
+
+In the client, tab **Service accounts roles → Assign role → Filter by
+clients**, search `realm-management` and add:
+
+- `view-events` (user and admin events, lockouts);
+- `view-users` (the users, the brute-force status of an account);
+- `view-realm` (the sessions).
+
+**Several realms**: create the client in the `master` realm instead, and add
+these three roles from the client `<realm>-realm` of each realm watched (e.g.
+`home-realm`). A client of master also gets the version of Keycloak, which
+Keycloak hides from the clients of the other realms.
+
+### 4. Configure the integration
+
+In Gladys, **Integrations → Keycloak → Configuration**:
+
+- **Address of Keycloak**: e.g. `https://sso.example.com` (with `/auth` for
+  Keycloak 16 and older).
+- **Realms to watch**: e.g. `home`, or `home, family` (case-sensitive).
+- **Realm of the client**: empty when the client lives in the first realm
+  watched, `master` otherwise.
+- **Client ID** and **Client secret**: the ones of step 2.
+- **Failed logins in a series** and **Window of the series**: the rule of the
+  "Series of failed logins" trigger, 5 failures in 10 minutes by default.
+- **Refresh interval**: 1 minute by default.
+- **Language of the names**: language of the feature names and of the sentence.
+
+**Test the connection** reads Keycloak at once and sums up what it sees.
+
+### 5. Add the devices
+
+In **Discovery**, add the "Keycloak <realm>" devices.
+
+## The device
+
+| Feature                | What it holds                                                |
+| ---------------------- | ------------------------------------------------------------ |
+| `Reachable`            | 1 when the realm can be read, 0 otherwise                    |
+| `Failed logins (1 h)`  | Failed logins of the last hour                               |
+| `Failed logins (24 h)` | Failed logins of the last 24 hours                           |
+| `Logins (24 h)`        | Successful logins of the last 24 hours                       |
+| `Users`                | User accounts of the realm (service accounts left out)       |
+| `Active sessions`      | Active sessions, one per user and application                |
+| `Locked accounts`      | Accounts the brute-force protection holds locked now         |
+| `Version`              | Version of Keycloak (only with a client of the master realm) |
+
+"Reachable" goes to 0 after two failed reads in a row: a restart of Keycloak
+goes unnoticed. The counts can trigger scenes like any sensor (e.g. "Failed
+logins (1 h)" above 20).
 
 ## Dashboard
 
-Add the **Demo status** widget to a dashboard: it shows the live
-temperature of the weather station and the power of the office plug, the
-connection the plug currently uses (orange when degraded) and the observed
-location. Its **Identify the light** button makes the demo light signal
-itself.
+The **Keycloak security** widget shows the failed and successful logins of the
+last 24 hours and the locked accounts, then the latest events (user, what
+happened, realm when there are several, time). **Refresh** reads Keycloak
+again.
+
+## Scenes
+
+### Triggers
+
+- **Failed login**: someone typed a wrong password or an unknown user name.
+  Filters: the realm, the user name. Variables: realm, user name typed,
+  address, application (client), Keycloak error code (`invalid_user_credentials`,
+  `user_not_found`, `user_temporarily_disabled`…).
+- **Series of failed logins**: the failures of a realm reach the number set in
+  the configuration within its window. Fires once per series, then again only
+  once the count fell below the threshold. Filter: the realm. Variables: realm,
+  number of failures, window, different user names and addresses, the latest
+  user name and address.
+- **Account locked**: the brute-force protection locks an account. Filters: the
+  realm, the user name. Variables: realm, user name, address of the last
+  failure, lockout (`temporary` or `permanent`).
+- **Sensitive admin event**: in a realm, an admin role is granted, another role
+  granted, a user created or deleted, a client created, changed or deleted, or
+  the realm settings changed. Filters: the realm, the event. Variables: realm,
+  event, operation, resource type, user, client or roles concerned (with
+  "Include representation"), address of the administrator.
+
+User names and addresses are personal data: they are passed to your scenes (to
+write a notification) and shown on the widget, never written to the
+integration logs at the info level.
+
+### Actions
+
+- **Keycloak state**: sums up Keycloak for a message: failed logins over 1
+  hour and 24 hours, logins, locked accounts, users, active sessions, version,
+  the latest failed user name and address, and a ready-made sentence
+  ("Keycloak: 5 failed login(s) in 1 h, 5 in 24 h, 1 login(s) in 24 h, 1 locked
+  account(s), 2 user(s)").
+
+### Scene ideas
+
+- **Account locked** → a notification "{{triggerEvent.data.username}} is
+  locked after too many failed logins ({{triggerEvent.data.ip}})".
+- **Sensitive admin event** with the event "Admin role granted" → a
+  notification at once, whatever the time.
+- **Series of failed logins** → a notification, and the porch light blinks red
+  if nobody is home.
+- Every evening, **Keycloak state** → the sentence in a message.
 
 ## Troubleshooting
 
-The integration logs everything it does: check the integration logs from the
-Gladys UI (or `docker logs` on the host) with `LOG_LEVEL=debug` for the full
-detail.
+- **"client refused"**: the client ID or the secret is wrong, "Client
+  authentication" is off, or "Service accounts roles" is not ticked. Check also
+  the **Realm of the client**.
+- **"role missing for the service account"**: `view-events` is missing.
+  "users not readable", "sessions not readable" or "lockouts not readable" in
+  the test: `view-users` or `view-realm` is missing.
+- **"realm not found"**: the realm name is case-sensitive (`Home` is not
+  `home`).
+- **No event at all**: the events are not saved in the realm (step 1), or they
+  expired.
+- **"TLS refused"**: Keycloak uses a self-signed certificate, or `https://` was
+  typed for the HTTP port 8080. Use its local address in `http://…:8080`, or a
+  trusted certificate.
+- **"no Keycloak at this address"**: check the address (the one you open the
+  admin console with, without `/admin/…`). Keycloak 16 and older need `/auth`.
+- **Version empty**: normal with a client outside master.
+- Detailed logs: set `LOG_LEVEL=debug` on the container.
+
+## Limits
+
+- At most 1,000 events per realm and per read, 3,000 at the first read. Beyond
+  (a massive attack), the counts are lower bounds.
+- At most 10 scene events per trigger and per read: an attack never sends
+  hundreds of notifications.
+- What happened while the integration was stopped is announced at the next
+  start (within the last 24 hours, the time of the latest event being kept in
+  `/data`); the first start announces nothing.
+- Each renewal of the token (every 5 minutes by default) writes a
+  `CLIENT_LOGIN` event in the realm of the client: about 300 a day.
+- At most 10 realms. The device of a realm is keyed by its name: renaming the
+  realm makes another device.
+- Only the logins, the lockouts and the admin events listed above are followed,
+  not the logouts, the token refreshes or the identity providers.
+
+Not affiliated with the Keycloak project, the Cloud Native Computing Foundation
+or Red Hat.

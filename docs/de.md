@@ -1,0 +1,206 @@
+# Keycloak
+
+[Keycloak](https://www.keycloak.org/) ist ein freier Server für Identitäts- und
+Zugriffsverwaltung: Single Sign-on (SSO), Zwei-Faktor-Authentifizierung und
+Benutzerföderation für die Dienste deines Zuhauses oder deiner Firma. Diese
+Integration bringt seine **Sicherheitsereignisse** in Gladys: ein Gerät pro
+Realm mit den fehlgeschlagenen und erfolgreichen Anmeldungen des Tages, den
+Benutzern, den aktiven Sitzungen und den gesperrten Konten; Szenen, die bei
+einer fehlgeschlagenen Anmeldung, einer Serie von Fehlversuchen, einem vom
+Brute-Force-Schutz gesperrten Konto oder einer sensiblen Verwaltungsaktion
+auslösen (um dir eine Benachrichtigung mit Benutzer und Adresse zu schicken);
+und ein Dashboard-Widget mit den letzten Ereignissen.
+
+Getestet mit einem echten Keycloak 26.4.7 (Docker, `start-dev`: ein Test-Realm,
+erfolgreiche und fehlgeschlagene Anmeldungen über die OpenID-Connect-API, eine
+Sperre durch die Brute-Force-Erkennung, von einem Administrator geänderte
+Benutzer und Rollen). Ohne Produktivinstallation entwickelt: Rückmeldungen sind
+in [den Issues](https://github.com/guim31/gladys-keycloak/issues) willkommen.
+
+## Was du brauchst
+
+- Gladys Assistant 5.1.0 oder neuer.
+- Keycloak, vom Gladys-Rechner aus erreichbar (seine öffentliche Adresse oder
+  seine lokale Adresse auf Port 8080 oder 8443). Getestet mit 26.4; eine ältere
+  Version mit derselben Admin-API sollte funktionieren.
+- Die **eingeschalteten Ereignisse** in jedem überwachten Realm (unten):
+  standardmäßig speichert Keycloak kein Ereignis.
+- Einen **vertraulichen Client mit Dienstkonto** und drei Leserollen (unten).
+
+Gladys liest nur: Nichts in Keycloak kann von Gladys aus geändert werden.
+
+## Erste Schritte
+
+### 1. Die Ereignisse des Realms einschalten
+
+Wähle in der Admin-Konsole den Realm, dann **Realm settings → Events**:
+
+- Reiter **User events settings**: **Save events** einschalten. Die
+  Standardtypen enthalten `LOGIN`, `LOGIN_ERROR` und die Sperren. Keycloak
+  behält sie so lange wie dort eingestellt: Für die 24-Stunden-Zähler braucht
+  es mindestens einen Tag;
+- Reiter **Admin events settings**: **Save events** einschalten, und
+  **Include representation** einschalten, damit Gladys weiß, welcher Benutzer
+  angelegt und welche Rollen erteilt wurden (ohne das lässt sich eine
+  Adminrolle nicht von einer anderen unterscheiden).
+
+Für den Auslöser „Konto gesperrt“: **Realm settings → Security defenses →
+Brute force detection**, wähle einen Modus (vorübergehende oder dauerhafte
+Sperre).
+
+### 2. Den Client anlegen
+
+**Clients → Create client**: Typ OpenID Connect, Client-ID `gladys`. Nächste
+Seite: **Client authentication** einschalten, nur **Service accounts roles**
+ankreuzen („Standard flow“ und „Direct access grants“ abwählen). Speichern,
+dann das Geheimnis im Reiter **Credentials** kopieren.
+
+### 3. Ihm die Leserollen geben
+
+Im Client, Reiter **Service accounts roles → Assign role → Filter by
+clients**, suche `realm-management` und füge hinzu:
+
+- `view-events` (Benutzer- und Admin-Ereignisse, Sperren);
+- `view-users` (die Benutzer, der Brute-Force-Status eines Kontos);
+- `view-realm` (die Sitzungen).
+
+**Mehrere Realms**: Lege den Client stattdessen im Realm `master` an und füge
+diese drei Rollen aus dem Client `<realm>-realm` jedes überwachten Realms hinzu
+(z. B. `home-realm`). Ein Client von master bekommt auch die Version von
+Keycloak, die Keycloak vor den Clients der anderen Realms verbirgt.
+
+### 4. Die Integration konfigurieren
+
+In Gladys, **Integrationen → Keycloak → Konfiguration**:
+
+- **Adresse von Keycloak**: z. B. `https://sso.example.com` (mit `/auth` für
+  Keycloak 16 und älter).
+- **Zu überwachende Realms**: z. B. `home` oder `home, familie` (Groß- und
+  Kleinschreibung beachten).
+- **Realm des Clients**: leer, wenn der Client im ersten überwachten Realm
+  liegt, sonst `master`.
+- **Client-ID** und **Client-Geheimnis**: die aus Schritt 2.
+- **Fehlversuche für eine Serie** und **Zeitfenster der Serie**: die Regel des
+  Auslösers „Serie fehlgeschlagener Anmeldungen“, standardmäßig 5 Fehlversuche
+  in 10 Minuten.
+- **Aktualisierungsintervall**: standardmäßig 1 Minute.
+- **Sprache der Namen**: Sprache der Funktionsnamen und des Satzes.
+
+**Verbindung testen** liest Keycloak sofort und fasst zusammen, was es sieht.
+
+### 5. Die Geräte hinzufügen
+
+Füge unter **Erkennung** die Geräte „Keycloak <realm>“ hinzu.
+
+## Das Gerät
+
+| Funktion                             | Was sie enthält                                               |
+| ------------------------------------ | ------------------------------------------------------------- |
+| `Erreichbar`                         | 1, wenn der Realm lesbar ist, sonst 0                         |
+| `Fehlgeschlagene Anmeldungen (1 h)`  | Fehlgeschlagene Anmeldungen der letzten Stunde                |
+| `Fehlgeschlagene Anmeldungen (24 h)` | Fehlgeschlagene Anmeldungen der letzten 24 Stunden            |
+| `Anmeldungen (24 h)`                 | Erfolgreiche Anmeldungen der letzten 24 Stunden               |
+| `Benutzer`                           | Benutzerkonten des Realms (ohne Dienstkonten)                 |
+| `Aktive Sitzungen`                   | Aktive Sitzungen, eine pro Benutzer und Anwendung             |
+| `Gesperrte Konten`                   | Konten, die der Brute-Force-Schutz gerade gesperrt hält       |
+| `Version`                            | Version von Keycloak (nur mit einem Client des Realms master) |
+
+„Erreichbar“ geht nach zwei fehlgeschlagenen Lesevorgängen in Folge auf 0: Ein
+Neustart von Keycloak bleibt unbemerkt. Die Zähler können wie jeder Sensor
+Szenen auslösen (z. B. „Fehlgeschlagene Anmeldungen (1 h)“ über 20).
+
+## Dashboard
+
+Das Widget **Keycloak-Sicherheit** zeigt die fehlgeschlagenen und erfolgreichen
+Anmeldungen der letzten 24 Stunden und die gesperrten Konten, dann die letzten
+Ereignisse (Benutzer, was passiert ist, Realm bei mehreren, Uhrzeit).
+**Aktualisieren** liest Keycloak neu.
+
+## Szenen
+
+### Auslöser
+
+- **Fehlgeschlagene Anmeldung**: Jemand hat ein falsches Passwort oder einen
+  unbekannten Benutzernamen eingegeben. Filter: der Realm, der Benutzername.
+  Variablen: Realm, eingegebener Benutzername, Adresse, Anwendung (Client),
+  Keycloak-Fehlercode (`invalid_user_credentials`, `user_not_found`,
+  `user_temporarily_disabled`…).
+- **Serie fehlgeschlagener Anmeldungen**: Die Fehlversuche eines Realms
+  erreichen die in der Konfiguration eingestellte Zahl in ihrem Zeitfenster.
+  Löst einmal pro Serie aus, dann erst wieder, wenn die Zahl unter die Schwelle
+  gefallen ist. Filter: der Realm. Variablen: Realm, Zahl der Fehlversuche,
+  Zeitfenster, verschiedene Benutzernamen und Adressen, der letzte
+  Benutzername und die letzte Adresse.
+- **Konto gesperrt**: Der Brute-Force-Schutz sperrt ein Konto. Filter: der
+  Realm, der Benutzername. Variablen: Realm, Benutzername, Adresse des letzten
+  Fehlversuchs, Sperre (`temporary` oder `permanent`).
+- **Sensible Verwaltungsaktion**: In einem Realm wird eine Adminrolle erteilt,
+  eine andere Rolle erteilt, ein Benutzer angelegt oder gelöscht, ein Client
+  angelegt, geändert oder gelöscht, oder die Realm-Einstellungen geändert.
+  Filter: der Realm, das Ereignis. Variablen: Realm, Ereignis, Vorgang,
+  Ressourcentyp, betroffener Benutzer, Client oder Rollen (mit „Include
+  representation“), Adresse des Administrators.
+
+Benutzernamen und Adressen sind personenbezogene Daten: Gladys übergibt sie an
+deine Szenen (um eine Benachrichtigung zu schreiben) und zeigt sie im Widget,
+schreibt sie aber nie auf Info-Ebene in die Protokolle der Integration.
+
+### Aktionen
+
+- **Zustand von Keycloak**: fasst Keycloak für eine Nachricht zusammen:
+  fehlgeschlagene Anmeldungen über 1 Stunde und 24 Stunden, Anmeldungen,
+  gesperrte Konten, Benutzer, aktive Sitzungen, Version, der letzte
+  fehlgeschlagene Name und die letzte Adresse, und ein fertiger Satz
+  („Keycloak: 5 fehlgeschlagene Anmeldung(en) in 1 h, 5 in 24 h, 1
+  Anmeldung(en) in 24 h, gesperrte Konten: 1, 2 Benutzer“).
+
+### Szenenideen
+
+- **Konto gesperrt** → eine Benachrichtigung „{{triggerEvent.data.username}}
+  ist nach zu vielen Fehlversuchen gesperrt ({{triggerEvent.data.ip}})“.
+- **Sensible Verwaltungsaktion** mit dem Ereignis „Adminrolle erteilt“ → eine
+  sofortige Benachrichtigung, egal zu welcher Uhrzeit.
+- **Serie fehlgeschlagener Anmeldungen** → eine Benachrichtigung, und das Licht
+  am Eingang blinkt rot, wenn niemand zu Hause ist.
+- Jeden Abend **Zustand von Keycloak** → der Satz in einer Nachricht.
+
+## Fehlerbehebung
+
+- **„Client abgelehnt“**: Client-ID oder Geheimnis sind falsch, „Client
+  authentication“ ist aus, oder „Service accounts roles“ ist nicht angekreuzt.
+  Prüfe auch den **Realm des Clients**.
+- **„Dem Dienstkonto fehlt eine Rolle“**: `view-events` fehlt. „Benutzer nicht
+  lesbar“, „Sitzungen nicht lesbar“ oder „Sperren nicht lesbar“ im Test: es
+  fehlt `view-users` oder `view-realm`.
+- **„Realm nicht gefunden“**: Beim Realm-Namen zählt Groß- und Kleinschreibung
+  (`Home` ist nicht `home`).
+- **Gar kein Ereignis**: Die Ereignisse werden im Realm nicht gespeichert
+  (Schritt 1), oder sie sind abgelaufen.
+- **„TLS abgelehnt“**: Keycloak nutzt ein selbstsigniertes Zertifikat, oder es
+  wurde `https://` für den HTTP-Port 8080 eingegeben. Nutze seine lokale
+  Adresse mit `http://…:8080` oder ein vertrauenswürdiges Zertifikat.
+- **„kein Keycloak unter dieser Adresse“**: Prüfe die Adresse (die, mit der du
+  die Admin-Konsole öffnest, ohne `/admin/…`). Keycloak 16 und älter brauchen
+  `/auth`.
+- **Version leer**: normal mit einem Client außerhalb von master.
+- Ausführliche Protokolle: setze `LOG_LEVEL=debug` am Container.
+
+## Grenzen
+
+- Höchstens 1.000 Ereignisse pro Realm und Lesevorgang, 3.000 beim ersten
+  Lesen. Darüber (ein massiver Angriff) sind die Zähler Mindestwerte.
+- Höchstens 10 Szenenereignisse pro Auslöser und Lesevorgang: Ein Angriff
+  schickt nie Hunderte von Benachrichtigungen.
+- Was passiert ist, während die Integration gestoppt war, wird beim nächsten
+  Start gemeldet (innerhalb der letzten 24 Stunden, da die Zeit des letzten
+  Ereignisses in `/data` gespeichert wird); der allererste Start meldet nichts.
+- Jede Erneuerung des Tokens (standardmäßig alle 5 Minuten) schreibt ein
+  Ereignis `CLIENT_LOGIN` in den Realm des Clients: etwa 300 am Tag.
+- Höchstens 10 Realms. Das Gerät eines Realms hängt an seinem Namen: Ein
+  umbenannter Realm ergibt ein anderes Gerät.
+- Verfolgt werden nur die Anmeldungen, die Sperren und die oben genannten
+  Verwaltungsaktionen, nicht die Abmeldungen, die Token-Erneuerungen oder die
+  Identitätsanbieter.
+
+Keine Verbindung zum Keycloak-Projekt, zur Cloud Native Computing Foundation
+oder zu Red Hat.

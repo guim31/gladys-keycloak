@@ -16,8 +16,8 @@ its only runtime dependency. It started from the official JavaScript template.
 ```bash
 npm install
 npm test                                  # node --test, the built-in runner
-node --test test/devices.test.js          # one file
-node --test --test-name-pattern "plug"    # tests whose name matches
+node --test test/hub.test.js              # one file
+node --test --test-name-pattern "lockout" # tests whose name matches
 npm run lint                              # ESLint
 npm run format:check                      # Prettier, as the CI runs it
 npm run format                            # Prettier, fix in place
@@ -31,16 +31,20 @@ pushing.
 ## Architecture
 
 ```
-index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
-src/scenes.js                     scene action handlers (manifest `scene_actions`)
-src/widgets.js                    dashboard widget handlers (manifest `widgets`)
+index.js                          SDK wiring only (src/app.js), connect()
+src/app.js                        registers every handler on the SDK (or the fake Gladys)
+src/hub.js                        reading loop per realm, cursors, scene events, states, status
+src/keycloak/client.js            Keycloak client (token, events, admin events, lockouts, counts)
+src/devices.js                    the "Keycloak <realm>" devices: features, names, values
+src/scenes.js                     scene action handler (manifest `scene_actions`)
+src/widgets.js                    dashboard widget handler (manifest `widgets`)
+src/texts.js                      four-language messages (status, errors, report)
 src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
-gladys-assistant-integration.json manifest: name, config_schema, actions, image...
-docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
-test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
+src/store.js, src/problems.js     /data persistence, once-per-problem logging
+gladys-assistant-integration.json manifest: name, config_schema, triggers, actions, widget...
+docs/{en,fr,de,es}.md             user documentation, re-hosted by Gladys (mandatory)
+test/                             node --test, against the SDK's fake Gladys and a fake Keycloak
+test/fixtures/keycloak/           real answers of Keycloak 26.4.7 (addresses anonymised)
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -70,8 +74,9 @@ test/                             node --test, against the SDK's fake Gladys (in
   `type: "provider"`: 5.1.0). `test/manifest.test.js` ties the manifest to the
   code (defaults, action, scene and widget handlers): change both sides
   together.
-- **User-facing text** is bilingual (English and French): action messages,
-  manifest texts, and `docs/en.md` / `docs/fr.md`, kept in sync.
+- **User-facing text** exists in English, French, German and Spanish: action
+  messages, manifest texts, widget texts and `docs/{en,fr,de,es}.md`, kept in
+  sync (`test/i18n.test.js`).
 - **Style.** Prettier formats, ESLint catches mistakes. Comments explain why,
   in English. Tests never touch the network.
 
@@ -197,6 +202,42 @@ code de ce dépôt. Compléter ce fichier quand un nouveau piège est découvert
 - Les filtres de scène ne font qu'égalité et appartenance : un seuil reste le travail d'un capteur.
 - **Les clés de widgets, de déclencheurs et d'actions sont figées une fois publiées.**
 - `gladys_version` `>=5.1.0` dès qu'il y a widgets, déclencheurs ou actions de scène.
+
+## Keycloak (Admin REST API, vérifié sur 26.4.7 en Docker)
+
+- Architecture, clés de déclencheurs, widget et garde-fous repris de **gladys-authentik** (voisin à garder
+  ressemblant) : curseur + ids récents par realm dans `/data`, recouvrement de 2 min, 10 événements de scène
+  au plus par déclencheur et par lecture, file `unsent`, série d'échecs réarmée sous le seuil.
+- **Jeton** : `client_credentials` sur `/realms/{realm du client}/protocol/openid-connect/token`, 300 s par
+  défaut (60 s dans master). Renouvelé à 20 s de la fin, et une fois de plus sur un 401. Mauvais secret :
+  **401 `unauthorized_client`** ; realm inconnu : **404 « Realm does not exist »**. Chaque jeton écrit un
+  événement `CLIENT_LOGIN` dans le realm du client (non lu).
+- **Rôles** (client `realm-management` du realm) : `view-events`, `view-users`, `view-realm` suffisent à tout
+  sauf la version. Un client d'un realm n'accède qu'à son realm (403 ailleurs) ; pour plusieurs realms, client
+  dans master avec les rôles des clients `<realm>-realm`.
+- `/admin/serverinfo` (≈ 300 Ko) ne donne `systemInfo.version` **qu'à un client de master** ; ailleurs il
+  répond 200 sans `systemInfo` : version vide, sans erreur.
+- `events?type=…&dateFrom=<ms>` : `dateFrom` accepte les **millisecondes** (vérifié : futur → `[]`), tri du
+  plus récent au plus ancien, pagination `first`/`max`. Repli sur `yyyy-MM-dd` (la veille) si un vieux
+  Keycloak répond 400. Les événements ont un `id` (UUID).
+- **Blocage force brute** : Keycloak écrit un événement `USER_DISABLED_BY_TEMPORARY_LOCKOUT` (ou
+  `…_PERMANENT_LOCKOUT`) avec `userId` mais **sans nom d'utilisateur** : le nom vient du dernier
+  `LOGIN_ERROR` du compte, sinon de `GET /users/{id}`. Les tentatives suivantes sont des `LOGIN_ERROR` avec
+  `error: user_temporarily_disabled`. `attack-detection/brute-force/users/{id}` → `{ disabled, numFailures,
+… }` : relu pour chaque compte bloqué (20 au plus par lecture) pour voir la fin du blocage.
+- `users/count` exclut les comptes de service (2 pour alice + bob) ; `users/count?enabled=true` les compte
+  (3) : ne pas l'utiliser. `GET /admin/realms/{realm}/sessions` n'existe pas (404) : les sessions viennent de
+  `client-session-stats` (`active` en chaîne, une session par utilisateur **et** client).
+- Événements d'administration : `resourceTypes=` filtre côté serveur ; `representation` (chaîne JSON) n'existe
+  qu'avec « Include representation » : un mapping de rôles y donne le tableau des rôles (d'où
+  `admin_role_granted`), une création d'utilisateur son `username`. Les secrets de client y sont masqués
+  (`**********`). `authDetails.userId` est l'administrateur (souvent dans master) : pas de nom lisible.
+- Realm inexistant dans l'API d'admin : **404 « Realm not found. »** ; utilisateur inexistant : 404 « User not
+  found ».
+- Le nom du realm sert d'identifiant de plateforme ; tout caractère hors `[A-Za-z0-9._-]` est écrit
+  `_<hex>` (un `:` casserait l'`external_id`).
+- Banc de test : `quay.io/keycloak/keycloak:26.4 start-dev` (≈ 35 s au démarrage), `KC_BOOTSTRAP_ADMIN_*`,
+  connexions jouées par le password grant d'un client public `directAccessGrantsEnabled`.
 
 ## Store
 
